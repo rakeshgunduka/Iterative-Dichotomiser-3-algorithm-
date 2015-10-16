@@ -16,7 +16,6 @@ d = [['Sunny'	,'Hot'	,'High'		,'Weak'		,'No'],\
 	 ['Overcast','Mild'	,'High'		,'Strong'	,'Yes'],\
 	 ['Overcast','Hot'	,'Normal'	,'Weak'		,'Yes'],\
 	 ['Rain'	,'Mild'	,'High'		,'Strong'	,'No']]
-
 tl = []
 title = ['Outlook','Temperature','Humidity','Wind','PlayTennis']
 classes = {}

@@ -1,8 +1,17 @@
 from __future__ import division
 from math import log
 import operator
+import csv
+from sys import argv
+script,file_name = argv
 
-d = [['Sunny'	,'Hot'	,'High'		,'Weak'		,'No'],\
+reader = csv.reader(open(file_name))
+d = []
+for row in reader:
+	d.append(row)
+'''
+d = [['Outlook','Temperature','Humidity','Wind','PlayTennis'],\
+	 ['Sunny'	,'Hot'	,'High'		,'Weak'		,'No'],\
 	 ['Sunny'	,'Hot'	,'High'		,'Strong'	,'No'],\
 	 ['Overcast','Hot'	,'High'		,'Weak'		,'Yes'],\
 	 ['Rain'	,'Mild'	,'High'		,'Weak'		,'Yes'],\
@@ -16,8 +25,10 @@ d = [['Sunny'	,'Hot'	,'High'		,'Weak'		,'No'],\
 	 ['Overcast','Mild'	,'High'		,'Strong'	,'Yes'],\
 	 ['Overcast','Hot'	,'Normal'	,'Weak'		,'Yes'],\
 	 ['Rain'	,'Mild'	,'High'		,'Strong'	,'No']]
+'''
 tl = []
-title = ['Outlook','Temperature','Humidity','Wind','PlayTennis']
+title = d[0]
+del d[0]
 classes = {}
 n = 0
 eS = 0
@@ -26,14 +37,12 @@ init = 1
 ig = {}
 tree = {}
 dset = []
+ltree = [] 
 
-def takestatistic():
-	for t in title:
-		tl.append(raw_input(t +": "))
-	print tl
 
 def init_classes(cls,ttl):
 	global n,init
+	print title
 	for p in title:
 		index = title.index(p)
 		ii = title.index(ttl)
@@ -46,11 +55,11 @@ def init_classes(cls,ttl):
 		for lists in d:
 			ts = lists[index]
 			if ts not in cl:
+				#print "first time",ts
 				cl.append(ts)
 				i = cl.index(ts)
 				if init == 0:
 					for r in classes[ttl]:
-						print r
 						if lists[ii] == r:
 							countYN.append([1,0])
 						elif lists[ii] == 'No':
@@ -64,9 +73,10 @@ def init_classes(cls,ttl):
 				count.append(1)
 				i = cl.index(ts)	
 			else:
+				#print ts,"already there"
 				for val in cl:
 					ind = cl.index(val)
-					if ts is val:
+					if ts == val:
 						count[ind] += 1
 						if lists[ii] == 'Yes':
 							countYN[ind][0] += 1
@@ -111,6 +121,7 @@ def find_entropy(ttl):
 	for dc in classes[ttl]:
 		et = entropy(ttl,dc)
 		e = e + et
+	print e
 	return e
 
 def informationgain(ttl):
@@ -120,7 +131,7 @@ def informationgain(ttl):
 		p = num/n
 		et = entropy(ttl,dc)
 		es[ttl] = et
-		e = e + p*et 
+		e = e + p*et
 	return eS - e
 
 def countof(node,chr1,ttl,chr2):
@@ -241,6 +252,8 @@ def developtree(node):
 			cn += 1
 			cnode.append(conn)
 			tree[node][conn] = getnodes(node,conn,cn)
+	treetolist(tree)
+	print ltree		
 
 def printtree():
 	for i in tree:
@@ -257,37 +270,38 @@ def printtree():
 							print "\t\t\t",l
 							print "\t\t\t\t",tree[i][j][k][l]
 
+def treetolist(d):
+	for v in d:
+		if type(d[v]) is dict:
+			print v
+			ltree.append(v)
+			treetolist(d[v])
+		else:
+			print v
+			ltree.append(v)
+			ltree.append(d[v])
+
 def enternewdataset():
 	ds = []
 	for i in range(len(title)):
-		if title[i] is not "PlayTennis":
-			ds.append(title[i])
-			ds.append(raw_input(title[i]+" : "))
+		if title[i] != "PlayTennis":
+			data = raw_input(title[i]+" : ")
+			if title[i] in ltree:
+				ds.append(title[i])
+				ds.append(data)
 	return ds
 
 def getchild(ds):
 	print ds
 	return [ds].keys()[0]
 
-def checkfor(ds):
-	#print ds
-	if ds[0] == root:
-		if ds[0] == 'Overcast':
-			return 1
-		elif ds[0] == 'Sunny':
-			if ds[4] == 'Humidity':
-				if ds[5] == 'High':
-					return 1	
-				elif ds[5] == 'Normal':
-					return 0
-					
-		elif ds[0] == 'Rain':
-			if ds[6] == 'Wind':
-				if ds[7] == 'Strong':
-					return 0
-				elif ds[7] == 'Weak':
-					return 1
-	return 0
+def checkfor(data,tree):
+	if data in tree:
+		if type(tree[data]) is dict:
+			d = checkfor(tree[data].iterkeys().next(),tree[data])
+			return d
+		else:
+			return 1	
 
 if __name__ == "__main__":
 	classes = init_classes(classes,'PlayTennis')
@@ -296,32 +310,29 @@ if __name__ == "__main__":
 	print classes
 	print "Length of dataset",n
 	eS = find_entropy('PlayTennis')
+	print "Entropy for PlayTennis:",eS
 	for tt in classes:
-		if tt is not "PlayTennis":
+		if tt != 'PlayTennis':
 			ig[tt] = informationgain(tt)
 	ig = sorted(ig.items(),key = operator.itemgetter(1),reverse = True)
-	print "Root is :",ig[0][0]
+	print "\nEntropy values :\n",ig
+	print "\nRoot is :",ig[0][0]
 	root = ig[0][0]
 	tree[root] = {}
 	developtree(root)
-	print "Output:\nThe Descition Tree Learning : \n",tree
+	print "\nOutput:\nThe Decision Learning Tree: \n",tree,"\n"
 	printtree()
 	n = int(raw_input("Enter Choice\n1: Enter new Dataset\n2. Exit \n"))							
 	if n == 1:
-		ds =['Outlook', 'Rain', 'Temperature', 'Hot', 'Humidity', 'High', 'Wind', 'Weak']
+		ds = enternewdataset()
 		tmp_ds = []
-		for i in range(len(ds)):
-			if i%2 == 1:
-				tmp_ds.append(ds[i])
-		print tmp_ds			
-		val = checkfor(ds)
+		val = checkfor(ds[0],tree)
 		if val is 0:
-			print "The Result is No"
+			print "Tennis cannot be played"
 			tmp_ds.append('No')
 		elif val is 1:
-			print "The Result is Yes"
+			print "Tennis can be played"
 			tmp_ds.append('Yes')
 		d.append(tmp_ds)	
-		print d
-	elif n == 0:
+	`elif n == 0:
 		exit(0)		

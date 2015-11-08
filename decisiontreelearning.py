@@ -2,6 +2,7 @@ from __future__ import division
 from math import log
 import operator
 import csv
+import copy
 from sys import argv
 script,file_name = argv
 
@@ -9,78 +10,51 @@ reader = csv.reader(open(file_name))
 d = []
 for row in reader:
 	d.append(row)
-'''
-d = [['Outlook','Temperature','Humidity','Wind','PlayTennis'],\
-	 ['Sunny'	,'Hot'	,'High'		,'Weak'		,'No'],\
-	 ['Sunny'	,'Hot'	,'High'		,'Strong'	,'No'],\
-	 ['Overcast','Hot'	,'High'		,'Weak'		,'Yes'],\
-	 ['Rain'	,'Mild'	,'High'		,'Weak'		,'Yes'],\
-	 ['Rain'	,'Cool'	,'Normal'	,'Weak'		,'Yes'],\
-	 ['Rain'	,'Cool'	,'Normal'	,'Strong'	,'No'],\
-	 ['Overcast','Cool'	,'Normal'	,'Strong'	,'Yes'],\
-	 ['Sunny'	,'Mild'	,'High'		,'Weak'		,'No'],\
-	 ['Sunny'	,'Cool'	,'Normal'	,'Weak'		,'Yes'],\
-	 ['Rain'	,'Mild'	,'Normal'	,'Weak'		,'Yes'],\
-	 ['Sunny'	,'Mild'	,'Normal'	,'Strong'	,'Yes'],\
-	 ['Overcast','Mild'	,'High'		,'Strong'	,'Yes'],\
-	 ['Overcast','Hot'	,'Normal'	,'Weak'		,'Yes'],\
-	 ['Rain'	,'Mild'	,'High'		,'Strong'	,'No']]
-'''
+#GLOBALS
 tl = []
-title = d[0]
-del d[0]
+t_titles = d[0]
+cls = {}
 classes = {}
-n = 0
-eS = 0
-es = {}
+n = len(d)-1
+ctitle = t_titles[len(d[0])-1]
 init = 1
-ig = {}
 tree = {}
-dset = []
-ltree = [] 
+trap = 0
 
-
-def init_classes(cls,ttl):
-	global n,init
-	print title
+def init_classes(dset):
+	global n,trap
+	cls = {}
+	dataset = copy.copy(dset)
+	title = dataset[0]
+	del dataset[0]
 	for p in title:
 		index = title.index(p)
-		ii = title.index(ttl)
+		ii = title.index(ctitle)
 		cld = {}
 		cnt = {}
 		cl = []
 		count = []
 		countYN = []
 		m = 0
-		for lists in d:
+		for lists in dataset:
 			ts = lists[index]
 			if ts not in cl:
-				#print "first time",ts
 				cl.append(ts)
 				i = cl.index(ts)
-				if init == 0:
-					for r in classes[ttl]:
-						if lists[ii] == r:
-							countYN.append([1,0])
-						elif lists[ii] == 'No':
-							countYN.append([0,1])	 
-					exit(0)
-				else:	
-					if lists[ii] == 'Yes':
-						countYN.append([1,0])
-					elif lists[ii] == 'No':
-						countYN.append([0,1])
+				if lists[ii] in ['yes','Yes','YES']:
+					countYN.append([1,0])
+				elif lists[ii] in ['no','No','NO']:
+					countYN.append([0,1])
 				count.append(1)
 				i = cl.index(ts)	
 			else:
-				#print ts,"already there"
 				for val in cl:
 					ind = cl.index(val)
 					if ts == val:
 						count[ind] += 1
-						if lists[ii] == 'Yes':
+						if lists[ii] in ['yes','Yes','YES']:
 							countYN[ind][0] += 1
-						elif lists[ii] == 'No':
+						elif lists[ii] in ['no','No','NO']:
 							countYN[ind][1] += 1
 					
 			q = cl.index(ts)	
@@ -94,245 +68,191 @@ def init_classes(cls,ttl):
 			n = m
 	return cls
 
-def entropy(ttl,dc):
-	lt = classes[ttl][dc]
-	if ttl is not "PlayTennis":
-		n = lt[0]+lt[1]
-	else:
-		n = 14	
-	e = 0
-	if 0 in lt and ttl is not "PlayTennis":
-		return 0
-	else:	
-		for data in lt:
-			num = data
-			if num is not 0:
-				p = (num/n)
-				et = -((p*log(p))/(log(2)))
-				e = e + et
-	return e
+def project_columns(title1,title2,dset):
+	dataset = copy.copy(dset)
+	title = dataset[0]
+	t1_index = t_titles.index(title1)
+	t2_index = t_titles.index(title2)
+	nd = []
+	rw = []
+	rw.append(title1)
+	rw.append(title2)
+	nd.append(rw)
+	for rows in dataset:
+		rw = []
+		d1 = rows[t1_index]
+		rw.append(d1)
+		d2 = rows[t2_index]
+		rw.append(d2)
+		nd.append(rw)
+	return nd
 
-def entr(num):
-	p = num
-	return p
+def select_rows(title,attribute,dset):
+	dataset = copy.copy(dset)
+	del dataset[0]
+	t_index = t_titles.index(title)
+	nd = []
+	nd.append(dset[0])
+	for rows in dataset:
+		if rows[t_index] == attribute:
+			nd.append(rows)
+	return nd	
 
-def find_entropy(ttl):
-	e = 0
-	for dc in classes[ttl]:
-		et = entropy(ttl,dc)
-		e = e + et
-	print e
-	return e
 
-def informationgain(ttl):
+def initial_entropy(dt,dset):
+	global init
 	e = 0
-	for dc in classes[ttl]:
-		num = (classes[ttl][dc])[0]+(classes[ttl][dc])[1]	
+	dataset = copy.copy(dset)
+	classes = init_classes(dataset)
+	del dataset[0]
+	n = len(dataset)
+	for data in classes[dt]:
+		num = (classes[dt][data])[0]+(classes[dt][data])[1]	
 		p = num/n
-		et = entropy(ttl,dc)
-		es[ttl] = et
-		e = e + p*et
-	return eS - e
+		e = e + entropy(classes[dt][data])	
+	init = 0
+	return e
 
-def countof(node,chr1,ttl,chr2):
-	n = title.index(node)
-	m = title.index(ttl)
-	count = 0
-	for lists in d:
-		if chr1 == lists[n]:
-			if chr2 == lists[m]:
-				count += 1
-	return count
+def entropy(st):
+	global init
+	tn = st[0] + st[1]
+	e = 0
+	if init == 0:
+		if 0 in st:
+			e = 0
+		else:	
+			for num in st:
+				p = num/tn
+				e = e + ((-p*log(p))/(log(2)))
+	else:
+		p = tn/n
+		e = (-p*log(p))/(log(2))
+	return e	 
 
-def dataset(node,char,ttl):
-	p = title.index(node)
-	q = title.index(ttl)
-	r = title.index('PlayTennis')
-	lt = []
-	ls = []
-	for data in d:
-		lt = lt[0:0]
-		if data[p] == char:
-			lt.append(data[p])
-			lt.append(data[q])
-			lt.append(data[r])
-			ls.append(lt)
+def infogain_for(dset):	
+	sum = 0
+	n = len(dset)-1
+	cls = init_classes(dset)
+	e = 0
+	for data in cls:
+		if data != ctitle:
+			for xdata in cls[data]:
+				m = cls[data][xdata][0] + cls[data][xdata][1]
+				p = m/n
+				e = e + p*entropy(cls[data][xdata])
+	return eS-e
+
+def getroot(dset,node):
+	global eS
+	dataset = copy.copy(dset)
+	cls = init_classes(dataset)
+	del dataset[0]
+	n = len(dataset)
+	ig = {}
+	check_list = dset[0]
+	print check_list
+	eS = initial_entropy(ctitle,dset)
+	for dt in check_list:
+		if dt !=  node:
+			ptable = project_columns(dt,ctitle,dataset)
+			#print "for",dt
+			#printtable(ptable)
+			ig[dt] = infogain_for(ptable)
+	ig = sorted(ig.items(),key = operator.itemgetter(1),reverse = True)
+	print ig
+	return ig[0][0]
+
+def prediction_for(node,table):
+	cls = init_classes(table)
+	print cls
+	ls = {}
+	for xdata in cls:
+		if xdata != ctitle:
+			for ydata in cls[xdata]:
+				if 0 not in cls[xdata][ydata]:
+					mx = max(cls[xdata][ydata])
+					if cls[xdata][ydata].index(mx) == 0:
+						return "YES"
+					else:
+						return "NO"
+
+def getnode(node,path,dset,branches):
+	global trap
+	dataset = copy.copy(dset)
+	cls = init_classes(dataset)
+	del dataset[0]
+	n = len(dataset)
+	ig = {}
+	check_list	 = dset[0]
+	if 0 in cls[node][path]:
+		ls = 0
+		for i in range(len(cls[node][path])):
+			if cls[node][path][i] == 0:
+				ls = "YES"
+			else:
+				ls = "NO"				
+	else:
+		ls = {}
+		if trap == 3:
+			printtable(dataset)
+		if trap == 2:
+			printtable(dataset)
+		for dt in check_list:
+			if dt !=  node and dt != ctitle and dt not in branches:
+				ptable = project_columns(dt,ctitle,dataset)
+				printtable(ptable)
+				ig[dt] = infogain_for(ptable)
+		ig = sorted(ig.items(),key = operator.itemgetter(1),reverse = True)
+		print ig
+		if len(ig) == 2:
+			printtable(ptable)
+			if ig[0][1] == ig[0][1]:
+				#for ambiguous situation
+				val = prediction_for(ptable[0][0],ptable)
+				return val
+		ils = {}
+		for f_paths in cls[ig[0][0]]:
+			branches.append(ig[0][0])
+			ils[f_paths] = getnode(ig[0][0],f_paths,dset,branches)
+		ls[ig[0][0]] = ils
 	return ls
 
-def entropyfor(num,n):
-	p = num/n
-	et = -(p*log(p))/(log(2))
-	return et
+def printtable(table):
+	for row in table:
+		print row
+	print
 
-def infogain(node,char,ttl):
-	global dset
-	dset = dataset(node,char,ttl)
-	e = 0
-	n = len(dset)
-	cn = []
-	count = []
-	for r in classes[ttl]:
-		cn.append(r)
-		count.append([0,0])
-	for dt in dset:
-		if dt[0] == char:
-			for r in cn:
-				i = cn.index(r)
-				if dt[1] == r:
-					if dt[2] == 'Yes':
-						count[i][0] += 1
-					else:
-						count[i][1] += 1
-	eo = 0
-	val = {}
-	for ct in count:
-		get = count.index(ct)
-		m = ct[0]+ct[1]
-		p = m/n
-		if 0 not in ct:
-			for tv in ct:
-				et = entropyfor(tv,m)
-				e = e + p*et
-	return es[node]-e
+def developtree(node,cls,dset):
+	global trap
+	branches = []
+	tls = {}
+	for paths in cls[node]:
+		ls = {}
+		tdataset = select_rows(node,paths,dset)
+		branches.append(node)
+		tls[paths] = getnode(node,paths,tdataset,branches)
+	return tls
 
-def getnodes(node,cd,cn):
-	global ig
-	for g in ig:
-		for gn in g:
-			if gn == node:
-				index = g.index(gn)
-	eg = {}
-	lst = {}
-	for c in range(cn):
-		i = index+c+1
-		cl = ig[i][0]
-		t = infogain(node,cd,cl)	
-		if bool(lst) is False:
-			lst[cl] = t
-		elif not all(i>=t for i in list(lst.values())):	
-			lst.clear()
-			lst[cl] = t
-		if lst[cl] == es[node]:
-			cn = []
-			count = []
-			for r in classes[cl]:
-				cn.append(r)
-				count.append([0,0])
-			for dt in dset:
-				if dt[0] == cd:
-					for r in cn:
-						i = cn.index(r)
-						if dt[1] == r:
-							if dt[2] == 'Yes':
-								count[i][0] += 1
-							else:
-								count[i][1] += 1
-			l = {}
-			for i in cn:
-				index = cn.index(i)
-				if count[index][0] == 0:
-					l[i] = "No"
-				else:
-					l[i] = "Yes"
-			lst[cl] = l
-	return lst
-			 
-def developtree(node):
-	cn = 0
-	cnode = []
-	for conn in classes[node]:
-		nd = classes[node][conn]
-		if 0 in nd:
-			iid = nd.index(0)
-			if iid is 0:
-				tree[node][conn] = 'No'
-			else:
-				tree[node][conn] = 'Yes'	
-		else:
-			cn += 1
-			cnode.append(conn)
-			tree[node][conn] = getnodes(node,conn,cn)
-	treetolist(tree)
-	print ltree		
-
-def printtree():
-	for i in tree:
-		print i
-		for j in tree[i]:
-			print "\t",j
-			if type(tree[i][j]) is str:
-				print "\t\t",tree[i][j]
-			else:
-				for k in tree[i][j]:
-					print "\t\t",k
-					if type(tree[i][j][k]) is dict: 
-						for l in tree[i][j][k]:
-							print "\t\t\t",l
-							print "\t\t\t\t",tree[i][j][k][l]
-
-def treetolist(d):
-	for v in d:
-		if type(d[v]) is dict:
-			print v
-			ltree.append(v)
-			treetolist(d[v])
-		else:
-			print v
-			ltree.append(v)
-			ltree.append(d[v])
-
-def enternewdataset():
-	ds = []
-	for i in range(len(title)):
-		if title[i] != "PlayTennis":
-			data = raw_input(title[i]+" : ")
-			if title[i] in ltree:
-				ds.append(title[i])
-				ds.append(data)
-	return ds
-
-def getchild(ds):
-	print ds
-	return [ds].keys()[0]
-
-def checkfor(data,tree):
-	if data in tree:
-		if type(tree[data]) is dict:
-			d = checkfor(tree[data].iterkeys().next(),tree[data])
-			return d
-		else:
-			return 1	
+def printtree(tree,depth):
+	for xdata in tree:
+		print "\t"*depth,xdata
+		if type(tree[xdata]) is str:
+			depth += 1
+			depth -= 1
+		elif type(tree[xdata]) is dict:
+			depth += 1		
+			printtree(tree[xdata],depth)
+			depth -= 1
+			
+def inittree(dset):
+	global eS
+	classes = init_classes(dset)
+	i = t_titles.index(ctitle)
+	root = getroot(dset,ctitle)
+	print "Root is",root
+	tree[root] = developtree(root,classes,dset)
+	printtree(tree,0)
 
 if __name__ == "__main__":
-	classes = init_classes(classes,'PlayTennis')
-	init = 0
-	print "Iterative Dichotomiser 3 algorithm"
-	print classes
-	print "Length of dataset",n
-	eS = find_entropy('PlayTennis')
-	print "Entropy for PlayTennis:",eS
-	for tt in classes:
-		if tt != 'PlayTennis':
-			ig[tt] = informationgain(tt)
-	ig = sorted(ig.items(),key = operator.itemgetter(1),reverse = True)
-	print "\nEntropy values :\n",ig
-	print "\nRoot is :",ig[0][0]
-	root = ig[0][0]
-	tree[root] = {}
-	developtree(root)
-	print "\nOutput:\nThe Decision Learning Tree: \n",tree,"\n"
-	printtree()
-	n = int(raw_input("Enter Choice\n1: Enter new Dataset\n2. Exit \n"))							
-	if n == 1:
-		ds = enternewdataset()
-		tmp_ds = []
-		val = checkfor(ds[0],tree)
-		if val is 0:
-			print "Tennis cannot be played"
-			tmp_ds.append('No')
-		elif val is 1:
-			print "Tennis can be played"
-			tmp_ds.append('Yes')
-		d.append(tmp_ds)	
-	`elif n == 0:
-		exit(0)		
+	classes = init_classes(d)
+	tree = inittree(d)

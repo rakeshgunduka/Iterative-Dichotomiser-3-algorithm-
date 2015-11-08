@@ -10,6 +10,24 @@ reader = csv.reader(open(file_name))
 d = []
 for row in reader:
 	d.append(row)
+'''
+#Dataset Example
+d = [['Outlook','Temperature','Humidity','Wind','PlayTennis'],\
+	 ['Sunny'	,'Hot'	,'High'		,'Weak'		,'No'],\
+	 ['Sunny'	,'Hot'	,'High'		,'Strong'	,'No'],\
+	 ['Overcast','Hot'	,'High'		,'Weak'		,'Yes'],\
+	 ['Rain'	,'Mild'	,'High'		,'Weak'		,'Yes'],\
+	 ['Rain'	,'Cool'	,'Normal'	,'Weak'		,'Yes'],\
+	 ['Rain'	,'Cool'	,'Normal'	,'Strong'	,'No'],\
+	 ['Overcast','Cool'	,'Normal'	,'Strong'	,'Yes'],\
+	 ['Sunny'	,'Mild'	,'High'		,'Weak'		,'No'],\
+	 ['Sunny'	,'Cool'	,'Normal'	,'Weak'		,'Yes'],\
+	 ['Rain'	,'Mild'	,'Normal'	,'Weak'		,'Yes'],\
+	 ['Sunny'	,'Mild'	,'Normal'	,'Strong'	,'Yes'],\
+	 ['Overcast','Mild'	,'High'		,'Strong'	,'Yes'],\
+	 ['Overcast','Hot'	,'Normal'	,'Weak'		,'Yes'],\
+	 ['Rain'	,'Mild'	,'High'		,'Strong'	,'No']]
+'''
 #GLOBALS
 tl = []
 t_titles = d[0]
@@ -27,6 +45,8 @@ def init_classes(dset):
 	dataset = copy.copy(dset)
 	title = dataset[0]
 	del dataset[0]
+	#print title
+	#print dataset
 	for p in title:
 		index = title.index(p)
 		ii = title.index(ctitle)
@@ -66,6 +86,9 @@ def init_classes(dset):
 		cls[p] = cld
 		if n < m:
 			n = m
+	#print cls
+	#if trap == 1:
+	#	exit(0)
 	return cls
 
 def project_columns(title1,title2,dset):
@@ -103,12 +126,15 @@ def initial_entropy(dt,dset):
 	global init
 	e = 0
 	dataset = copy.copy(dset)
+	#print dataset
 	classes = init_classes(dataset)
 	del dataset[0]
 	n = len(dataset)
 	for data in classes[dt]:
 		num = (classes[dt][data])[0]+(classes[dt][data])[1]	
 		p = num/n
+		#print num,n,data,classes[dt][data]
+		#print "for",classes[dt][data]
 		e = e + entropy(classes[dt][data])	
 	init = 0
 	return e
@@ -116,30 +142,44 @@ def initial_entropy(dt,dset):
 def entropy(st):
 	global init
 	tn = st[0] + st[1]
+	#print st,tn
 	e = 0
 	if init == 0:
 		if 0 in st:
+			#print "ders a zero"
 			e = 0
 		else:	
+			#print "No zero"
 			for num in st:
+				#print num,tn
 				p = num/tn
 				e = e + ((-p*log(p))/(log(2)))
 	else:
+		#print "init"
 		p = tn/n
 		e = (-p*log(p))/(log(2))
 	return e	 
+#[('Outlook', 0.24674981977443888),
+# ('Humidity', 0.15183550136234136), 
+#('Wind', 0.04812703040826927),
+# ('Temperature', 0.029222565658954647)]
 
 def infogain_for(dset):	
 	sum = 0
 	n = len(dset)-1
 	cls = init_classes(dset)
+	#print "\n",cls
 	e = 0
 	for data in cls:
 		if data != ctitle:
 			for xdata in cls[data]:
+				#print cls[data][xdata]
 				m = cls[data][xdata][0] + cls[data][xdata][1]
+				#print m,n
 				p = m/n
 				e = e + p*entropy(cls[data][xdata])
+				#print e
+	#print "ES :",eS			
 	return eS-e
 
 def getroot(dset,node):
@@ -194,27 +234,38 @@ def getnode(node,path,dset,branches):
 	else:
 		ls = {}
 		if trap == 3:
+			print node,path
 			printtable(dataset)
+			print cls
+			print "here"
 		if trap == 2:
+			print node,path
 			printtable(dataset)
+			print cls
 		for dt in check_list:
 			if dt !=  node and dt != ctitle and dt not in branches:
 				ptable = project_columns(dt,ctitle,dataset)
+				print "for",dt
 				printtable(ptable)
 				ig[dt] = infogain_for(ptable)
+				#print ig[dt]
 		ig = sorted(ig.items(),key = operator.itemgetter(1),reverse = True)
 		print ig
 		if len(ig) == 2:
+			print "*******************"
+			print ptable[0][0]
 			printtable(ptable)
 			if ig[0][1] == ig[0][1]:
-				#for ambiguous situation
 				val = prediction_for(ptable[0][0],ptable)
 				return val
 		ils = {}
+		print "asdasdasdasdas",cls[ig[0][0]]
 		for f_paths in cls[ig[0][0]]:
 			branches.append(ig[0][0])
 			ils[f_paths] = getnode(ig[0][0],f_paths,dset,branches)
+			print ils[f_paths]
 		ls[ig[0][0]] = ils
+		#print ls
 	return ls
 
 def printtable(table):
@@ -224,11 +275,14 @@ def printtable(table):
 
 def developtree(node,cls,dset):
 	global trap
+	#print node,cls,dset
 	branches = []
 	tls = {}
 	for paths in cls[node]:
+		#print "for",paths
 		ls = {}
 		tdataset = select_rows(node,paths,dset)
+		#printtable(tdataset)
 		branches.append(node)
 		tls[paths] = getnode(node,paths,tdataset,branches)
 	return tls
@@ -238,6 +292,7 @@ def printtree(tree,depth):
 		print "\t"*depth,xdata
 		if type(tree[xdata]) is str:
 			depth += 1
+			print "\t"*depth,tree[xdata]
 			depth -= 1
 		elif type(tree[xdata]) is dict:
 			depth += 1		
@@ -247,10 +302,13 @@ def printtree(tree,depth):
 def inittree(dset):
 	global eS
 	classes = init_classes(dset)
+	#print "Entropy for PlayTennis:",eS
 	i = t_titles.index(ctitle)
+	#To get root of the tree
 	root = getroot(dset,ctitle)
 	print "Root is",root
 	tree[root] = developtree(root,classes,dset)
+	print tree
 	printtree(tree,0)
 
 if __name__ == "__main__":
